@@ -6,7 +6,26 @@ const adminRouter = require('./routes/admin');
 
 const app = express();
 
-app.use(cors());
+// Configure CORS to allow frontend origins including deployed Vercel URL.
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'http://localhost:5173',
+].filter(Boolean);
+
+// Apply CORS policy with dynamic origin validation.
+app.use(
+  cors({
+    origin(origin, callback) {
+      // Allow server-to-server and non-browser requests with no origin.
+      if (!origin) return callback(null, true);
+      // Allow only origins that are in the approved frontend list.
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Reject origins not configured in environment variables.
+      return callback(new Error('Not allowed by CORS'));
+    },
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 app.use('/api', registrationRoutes);
