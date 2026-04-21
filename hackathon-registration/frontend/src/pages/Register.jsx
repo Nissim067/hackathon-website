@@ -1,4 +1,3 @@
-import Navbar from '../components/Navbar';
 import FormInput from '../components/FormInput';
 import TeamSection from '../components/TeamSection';
 import PaymentButton from '../components/PaymentButton';
@@ -9,19 +8,16 @@ const selectClass =
 
 export default function Register() {
   return (
-    <>
-      <Navbar />
-      <main className="mx-auto max-w-5xl px-4 py-10 sm:py-14">
-        <div className="mx-auto max-w-2xl">
-          <div className="mb-8 text-center">
-            <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
-              Register
-            </h1>
-            <p className="mt-2 text-slate-400">Complete your details to join the hackathon.</p>
-          </div>
+    <div className="mx-auto max-w-2xl">
+      <div className="mb-8 text-center">
+        <h1 className="text-3xl font-bold tracking-tight text-white sm:text-4xl">
+          Register
+        </h1>
+        <p className="mt-2 text-slate-400">Complete your details to join the hackathon.</p>
+      </div>
 
-          <div className="rounded-2xl border border-slate-700/50 bg-slate-800/70 p-6 shadow-2xl shadow-black/30 backdrop-blur-md sm:p-8">
-            <form className="space-y-10" onSubmit={(e) => e.preventDefault()}>
+      <div className="rounded-2xl border border-slate-700/50 bg-slate-800/70 p-6 shadow-2xl shadow-black/30 backdrop-blur-md sm:p-8">
+        <form className="space-y-10" onSubmit={(e) => e.preventDefault()}>
               <section className="space-y-5">
                 <h2 className="border-b border-slate-700 pb-2 text-lg font-semibold text-white">
                   Personal info
@@ -96,10 +92,8 @@ export default function Register() {
                   <PaymentButton />
                 </div>
               </section>
-            </form>
-          </div>
-        </div>
-      </main>
-    </>
+        </form>
+      </div>
+    </div>
   );
 }
