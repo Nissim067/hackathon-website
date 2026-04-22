@@ -3,6 +3,7 @@ const cors = require('cors');
 const registrationRoutes = require('./routes/registrationRoutes');
 const statsRouter = require('./routes/stats');
 const adminRouter = require('./routes/admin');
+const authRouter = require('./routes/auth');
 
 const app = express();
 
@@ -31,5 +32,6 @@ app.use(express.json());
 app.use('/api', registrationRoutes);
 app.use('/api', statsRouter);
 app.use('/api', adminRouter);
+app.use('/api', authRouter);
 
 module.exports = app;
