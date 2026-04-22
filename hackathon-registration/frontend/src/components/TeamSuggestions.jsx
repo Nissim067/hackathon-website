@@ -1,42 +1,48 @@
 import { useEffect, useState } from 'react';
 
-// ─── SVG Ring Constants ──────────────────────────────────────────────────────
-// The ring is an SVG circle with radius 40.
-// Circumference = 2 × π × 40 ≈ 251.33  — used for the dash-offset trick.
+// ─── Design-system tokens (keep central so every dev uses the same values) ───
+const COLORS = {
+  bg: '#0A0F1E',
+  card: '#0D1424',
+  indigo: '#6366F1',
+  teal: '#06B6D4',
+  green: '#1D9E75',
+  textPrimary: '#F1F5F9',
+  textMuted: '#94A3B8',
+};
+
+// ─── Helper: pick the ring colour based on the match percentage ──────────────
+function ringColor(pct) {
+  if (pct >= 75) return COLORS.green;
+  if (pct >= 50) return COLORS.indigo;
+  return COLORS.textMuted; // gray for weak matches
+}
+
+// ─── SVG circular progress ring ──────────────────────────────────────────────
+// radius = 40, circumference = 2 * π * 40 ≈ 251.33
 const RADIUS = 40;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
-// ─── Helper: choose the ring colour based on match quality ───────────────────
-function getRingColor(pct) {
-  if (pct >= 75) return '#22C55E'; // green  — strong match
-  if (pct >= 50) return '#3B82F6'; // blue   — decent match
-  return '#9CA3AF';                // gray   — weak match
-}
-
-// ─── MatchRing ───────────────────────────────────────────────────────────────
-// Circular SVG ring that visually represents matchPercent.
-// The coloured arc fills clockwise from the top (12-o'clock).
 function MatchRing({ percent }) {
-  const color = getRingColor(percent);
-  // offset = how much of the ring is *hidden*
+  const color = ringColor(percent);
+  // How much of the ring should be filled
   const offset = CIRCUMFERENCE - (percent / 100) * CIRCUMFERENCE;
 
   return (
-    <svg width="90" height="90" className="shrink-0">
-      {/* 1. Gray background track */}
+    <svg width="96" height="96" className="shrink-0">
+      {/* Background track */}
       <circle
-        cx="45"
-        cy="45"
+        cx="48"
+        cy="48"
         r={RADIUS}
         fill="none"
-        stroke="#E5E7EB"
+        stroke="rgba(255,255,255,0.08)"
         strokeWidth="6"
       />
-
-      {/* 2. Coloured progress arc */}
+      {/* Coloured progress arc */}
       <circle
-        cx="45"
-        cy="45"
+        cx="48"
+        cy="48"
         r={RADIUS}
         fill="none"
         stroke={color}
@@ -44,14 +50,13 @@ function MatchRing({ percent }) {
         strokeLinecap="round"
         strokeDasharray={CIRCUMFERENCE}
         strokeDashoffset={offset}
-        transform="rotate(-90 45 45)"
+        transform="rotate(-90 48 48)" // start from 12-o'clock
         className="transition-all duration-700"
       />
-
-      {/* 3. Percentage number centred inside */}
+      {/* Percentage number centred inside the ring */}
       <text
-        x="45"
-        y="45"
+        x="48"
+        y="48"
         textAnchor="middle"
         dominantBaseline="central"
         fill={color}
@@ -64,49 +69,44 @@ function MatchRing({ percent }) {
   );
 }
 
-// ─── SkeletonCard ────────────────────────────────────────────────────────────
-// Pulsing placeholder shown while the API call is in progress.
-// Mimics the real card layout so the page doesn't jump when data arrives.
+// ─── Skeleton card shown while data is loading ───────────────────────────────
 function SkeletonCard() {
   return (
-    <div className="animate-pulse rounded-xl border-l-4 border-l-[#6366F1] bg-white p-5 shadow-sm">
+    <div
+      className="animate-pulse rounded-xl border border-[#6366F1]/20 border-l-4 border-l-[#6366F1] p-5"
+      style={{ backgroundColor: COLORS.card }}
+    >
       <div className="flex gap-4">
-        {/* Fake ring placeholder */}
-        <div className="h-[90px] w-[90px] shrink-0 rounded-full bg-gray-200" />
-
+        {/* Fake ring */}
+        <div className="h-24 w-24 shrink-0 rounded-full bg-slate-700/50" />
         <div className="flex-1 space-y-3 py-2">
-          {/* Fake title bar */}
-          <div className="h-5 w-2/3 rounded bg-gray-200" />
-
-          {/* Fake skill pills */}
+          {/* Fake title */}
+          <div className="h-5 w-2/3 rounded bg-slate-700/50" />
+          {/* Fake pills */}
           <div className="flex gap-2">
-            <div className="h-5 w-16 rounded-full bg-gray-200" />
-            <div className="h-5 w-20 rounded-full bg-gray-200" />
-            <div className="h-5 w-14 rounded-full bg-gray-200" />
+            <div className="h-5 w-16 rounded-full bg-slate-700/50" />
+            <div className="h-5 w-20 rounded-full bg-slate-700/50" />
+            <div className="h-5 w-14 rounded-full bg-slate-700/50" />
           </div>
-
-          {/* Fake reason lines */}
-          <div className="h-4 w-full rounded bg-gray-200" />
-          <div className="h-4 w-4/5 rounded bg-gray-200" />
+          {/* Fake text lines */}
+          <div className="h-4 w-full rounded bg-slate-700/50" />
+          <div className="h-4 w-4/5 rounded bg-slate-700/50" />
         </div>
       </div>
     </div>
   );
 }
 
-// ─── SuggestionCard ──────────────────────────────────────────────────────────
-// Renders one team-match result.
-// Contains: match ring, team name, skill pills, match reasons, join button.
+// ─── Single suggestion card ──────────────────────────────────────────────────
 function SuggestionCard({ team }) {
-  // Button state: idle → loading → sent
-  const [loading, setLoading] = useState(false);
+  const [requesting, setRequesting] = useState(false);
   const [sent, setSent] = useState(false);
-  const [error, setError] = useState('');
+  const [requestError, setRequestError] = useState('');
 
-  // POST /api/teams/:id/request — ask to join this team
+  // Send join-request to backend
   const handleJoinRequest = async () => {
-    setLoading(true);
-    setError('');
+    setRequesting(true);
+    setRequestError('');
 
     try {
       const token = localStorage.getItem('token');
@@ -123,49 +123,54 @@ function SuggestionCard({ team }) {
         throw new Error(body.message || 'Request failed');
       }
 
-      // Mark this card as "sent" so the button stays disabled
-      setSent(true);
+      setSent(true); // success!
     } catch (err) {
-      setError(err.message);
+      setRequestError(err.message);
     } finally {
-      setLoading(false);
+      setRequesting(false);
     }
   };
 
   return (
-    <div className="rounded-xl border-l-4 border-l-[#6366F1] bg-white p-5 shadow-sm transition-shadow duration-300 hover:shadow-md">
-      {/* ── Card body: ring on the left, details on the right ── */}
+    <div
+      className="group rounded-xl border border-[#6366F1]/20 border-l-4 border-l-[#6366F1] p-5
+                 transition-shadow duration-300 hover:shadow-[0_0_20px_rgba(99,102,241,0.15)]"
+      style={{ backgroundColor: COLORS.card }}
+    >
+      {/* Top row: ring + info */}
       <div className="flex gap-5">
-        {/* 1. Circular match-percentage ring */}
+        {/* Match ring */}
         <MatchRing percent={team.matchPercent ?? 0} />
 
-        {/* 2–4. Team info column */}
+        {/* Team info */}
         <div className="min-w-0 flex-1 space-y-3">
-          {/* 2. Team name — bold */}
-          <h3 className="truncate text-lg font-bold text-gray-900">
+          {/* Team name */}
+          <h3 className="truncate text-lg font-bold" style={{ color: COLORS.textPrimary }}>
             {team.name}
           </h3>
 
-          {/* 3. Skill pill badges — indigo bg, white text */}
+          {/* Skill pills */}
           <div className="flex flex-wrap gap-1.5">
             {(team.skills || []).map((skill) => (
               <span
                 key={skill}
-                className="rounded-full bg-[#6366F1] px-2.5 py-0.5 text-xs font-medium text-white"
+                className="rounded-full border border-[#6366F1]/40 bg-[#6366F1]/20 px-2.5 py-0.5
+                           text-xs font-medium text-[#6366F1]"
               >
                 {skill}
               </span>
             ))}
           </div>
 
-          {/* 4. Match reasons — first 2 bullet points */}
+          {/* Match reasons (first 2 only) */}
           <ul className="space-y-1">
             {(team.reasons || []).slice(0, 2).map((reason, idx) => (
               <li
                 key={idx}
-                className="flex items-start gap-1.5 text-sm text-gray-600"
+                className="flex items-start gap-1.5 text-sm"
+                style={{ color: COLORS.teal }}
               >
-                <span className="mt-0.5 text-[#6366F1]">•</span>
+                <span className="mt-0.5">•</span>
                 <span>{reason}</span>
               </li>
             ))}
@@ -173,38 +178,60 @@ function SuggestionCard({ team }) {
         </div>
       </div>
 
-      {/* ── 5. "Request to Join" / "Sent!" button ── */}
+      {/* Join button */}
       <div className="mt-4 flex items-center justify-end gap-3">
-        {/* Show error if the request failed */}
-        {error && <span className="text-xs text-red-500">{error}</span>}
+        {requestError && (
+          <span className="text-xs text-rose-400">{requestError}</span>
+        )}
 
         <button
           type="button"
-          disabled={sent || loading}
+          disabled={sent || requesting}
           onClick={handleJoinRequest}
           className={`rounded-lg px-5 py-2 text-sm font-semibold text-white transition-all duration-200
             ${sent
-              ? 'cursor-default bg-green-500'
-              : 'bg-[#6366F1] hover:bg-indigo-500'
+              ? 'cursor-default bg-emerald-600/80'
+              : 'bg-[#6366F1] hover:bg-indigo-500 hover:shadow-[0_0_20px_rgba(99,102,241,0.4)]'
             }
             disabled:opacity-60`}
         >
-          {sent ? 'Sent!' : loading ? 'Sending…' : 'Request to Join'}
+          {/* Loading spinner */}
+          {requesting && (
+            <svg
+              className="-ml-1 mr-2 inline h-4 w-4 animate-spin text-white"
+              xmlns="http://www.w3.org/2000/svg"
+              fill="none"
+              viewBox="0 0 24 24"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"
+              />
+            </svg>
+          )}
+          {sent ? 'Request Sent ✓' : requesting ? 'Sending…' : 'Request to Join'}
         </button>
       </div>
     </div>
   );
 }
 
-// ─── TeamSuggestions (main export) ───────────────────────────────────────────
-// Fetches GET /api/teams/suggested on mount and renders up to 3 suggestion
-// cards in a vertical stack. Handles loading, error, and empty states.
+// ─── Main exported component ─────────────────────────────────────────────────
 export default function TeamSuggestions() {
   const [suggestions, setSuggestions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
-  // Fetch suggested teams once when the component mounts
+  // Fetch suggested teams on mount
   useEffect(() => {
     let cancelled = false;
 
@@ -220,9 +247,8 @@ export default function TeamSuggestions() {
         }
 
         const data = await res.json();
-
         if (!cancelled) {
-          // API returns an array — cap at 3 cards max
+          // Show at most 3 suggestions
           setSuggestions(Array.isArray(data) ? data.slice(0, 3) : []);
           setError('');
         }
@@ -238,15 +264,13 @@ export default function TeamSuggestions() {
     };
 
     fetchSuggestions();
-
-    // Cleanup: prevent state updates if the component unmounts mid-fetch
     return () => { cancelled = true; };
   }, []);
 
-  // ── Loading state: 3 animated skeleton cards ──
+  // ── Loading state: 3 pulsing skeleton cards ──
   if (loading) {
     return (
-      <div className="flex flex-col gap-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {[1, 2, 3].map((i) => (
           <SkeletonCard key={i} />
         ))}
@@ -257,33 +281,39 @@ export default function TeamSuggestions() {
   // ── Error state: friendly message ──
   if (error) {
     return (
-      <div className="rounded-xl border border-red-200 bg-red-50 p-6 text-center">
-        <p className="text-lg font-semibold text-red-600">Oops!</p>
-        <p className="mt-1 text-sm text-red-500">{error}</p>
-        <p className="mt-3 text-xs text-gray-400">
+      <div
+        className="rounded-xl border border-rose-500/30 p-6 text-center"
+        style={{ backgroundColor: 'rgba(244,63,94,0.08)' }}
+      >
+        <p className="text-lg font-semibold text-rose-300">Oops!</p>
+        <p className="mt-1 text-sm text-rose-200/70">{error}</p>
+        <p className="mt-3 text-xs text-slate-400">
           Please try refreshing the page or check back later.
         </p>
       </div>
     );
   }
 
-  // ── Empty state: no suggestions available ──
+  // ── Empty state ──
   if (suggestions.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-8 text-center shadow-sm">
-        <p className="text-lg font-semibold text-gray-700">
+      <div
+        className="rounded-xl border border-[#6366F1]/20 p-8 text-center"
+        style={{ backgroundColor: COLORS.card }}
+      >
+        <p className="text-lg font-semibold" style={{ color: COLORS.textPrimary }}>
           No suggestions yet
         </p>
-        <p className="mt-1 text-sm text-gray-500">
+        <p className="mt-1 text-sm" style={{ color: COLORS.textMuted }}>
           Complete your profile to get personalised team matches.
         </p>
       </div>
     );
   }
 
-  // ── Suggestion cards — vertical stack, max 3 ──
+  // ── Suggestion cards ──
   return (
-    <div className="flex flex-col gap-4">
+    <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {suggestions.map((team) => (
         <SuggestionCard key={team._id} team={team} />
       ))}

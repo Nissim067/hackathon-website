@@ -114,10 +114,20 @@ export default function Register({ onSuccess = () => {} }) {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/auth/register', {
+      const payload = {
+        name: formData.fullName,
+        email: formData.email,
+        phone: formData.phone,
+        college: formData.collegeName,
+        branch: formData.branch,
+        year: formData.yearOfStudy,
+        teamType: 'solo'
+      };
+
+      const response = await fetch('/api/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
+        body: JSON.stringify(payload),
       });
 
       const data = await response.json().catch(() => ({}));
